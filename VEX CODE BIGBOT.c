@@ -1,3 +1,10 @@
+#pragma config(Motor,  port1,           treadIntake,   tmotorVex393_HBridge, openLoop)
+#pragma config(Motor,  port2,           leftDrive2,    tmotorVex393_MC29, openLoop)
+#pragma config(Motor,  port3,           leftDrive1,    tmotorVex393_MC29, openLoop)
+#pragma config(Motor,  port4,           launcherLeft,  tmotorVex393TurboSpeed_MC29, openLoop)
+#pragma config(Motor,  port5,           launcherRight, tmotorVex393TurboSpeed_MC29, openLoop)
+#pragma config(Motor,  port8,           rightDrive1,   tmotorVex393_MC29, openLoop)
+#pragma config(Motor,  port9,           rightDrive2,   tmotorVex393_MC29, openLoop)
 #pragma platform(VEX)
 
 //Competition Control and Duration Settings
@@ -6,6 +13,32 @@
 #pragma userControlDuration(120)
 
 #include "Vex_Competition_Includes.c"   //Main competition background code...do not modify!
+
+////////////////////////// SOFTWARE DEFINES ////////////////////////////////////
+
+#define DRIVE_DZ 30 // The drive stick deadzone for both sticks
+
+////////////////////////////////////////////////////////////////////////////////
+/*
+ * Deadzones a joystick input.
+ *
+ * @param stickValue The raw joystick value.
+ * @param dz The lower threshold for input to go through.
+ */
+int applyDeadzone(int stickValue, int dz)
+{
+	int abValue = abs(stickValue);
+
+	// If the absolute stick value is below the thresh return 0
+	if (abValue < dz)
+	{
+		return 0;
+	}
+	else
+	{
+		return stickValue;
+	}
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -57,15 +90,53 @@ task usercontrol()
 {
 	// User control code here, inside the loop
 
+	// Used to keep track of the on state of the launch motors
+	bool shootOn = true;
+
+	// Turn on shoot motors initially
+	motor[launcherLeft] = 127;
+  motor[launcherRight] = 127;
+
 	while (true)
 	{
-	  // This is the main execution loop for the user control program. Each time through the loop
-	  // your program should update motor + servo values based on feedback from the joysticks.
+		// Run drive motors in tank drive
+	  motor[leftDrive1] = applyDeadzone(vexRT[Ch3], DRIVE_DZ);
+	  motor[leftDrive2] = applyDeadzone(vexRT[Ch3], DRIVE_DZ);
+	  motor[rightDrive1] = applyDeadzone(vexRT[Ch2], DRIVE_DZ);
+	  motor[rightDrive2] = applyDeadzone(vexRT[Ch2], DRIVE_DZ);
 
-	  // .....................................................................................
-	  // Insert user code here. This is where you use the joystick values to update your motors, etc.
-	  // .....................................................................................
+	  // Toggle button for the spin motors
+	  if (time100[T1] > 3 && vexRT[Btn5U] == 1)
+	  {
+	  	// Reset the timer and toggle the on state of shoot motors
+	  	clearTimer(T1);
+	  	shootOn = !shootOn;
 
-	  UserControlCodePlaceholderForTesting(); // Remove this function call once you have "real" code.
+	  	// Set shoot motor speed respectively
+	  	if (shootOn)
+	  	{
+	  		motor[launcherLeft] = 127;
+	  		motor[launcherRight] = 127;
+	  	}
+	  	else
+	  	{
+	  		motor[launcherLeft] = 0;
+	  		motor[launcherRight] = 0;
+	  	}
+	  }
+
+	  // Press shoulder buttons to run ball belt
+	  if (vexRT[Btn6U] == 1)
+	  {
+	  	motor[treadIntake] = 127;
+	  }
+	  else if (vexRT[Btn6D] == 1)
+	  {
+	  	motor[treadIntake] = -127;
+	  }
+	  else
+	  {
+	  	motor[treadIntake] = 0;
+	  }
 	}
 }
